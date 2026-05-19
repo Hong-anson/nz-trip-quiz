@@ -180,15 +180,17 @@
             0<span style="font-size: 24px;"> 分</span>
         </div>
         
-        <h3 style="font-size: 16px; color: #555; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📝 答案檢討：</h3>
-        <div id="review-container"></div>
-
         <p style="text-align: center; line-height: 1.5; font-size: 13px; color: #666; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px;">
-            成績已暫存。下飛機連上網路後，<br>手機會發出推播通知，請記得點擊同步成績。
+            成績已暫存，<strong>必須上傳成績後，才能解鎖答案檢討！</strong><br>下飛機連上網路後，手機會發出推播通知，請記得點擊同步。
         </p>
         
         <h3 style="text-align: center; font-size: 15px; color: #666; margin-top: 15px;">網路狀態：<span id="network-status">連線中</span></h3>
-        <button id="uploadBtn" onclick="uploadData()" disabled style="background-color: #34c759; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);">同步成績至伺服器</button>
+        <button id="uploadBtn" onclick="uploadData()" disabled style="background-color: #34c759; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);">同步成績並解鎖解答</button>
+
+        <div id="review-section" class="hidden" style="margin-top: 25px; border-top: 1px dashed #ccc; padding-top: 15px;">
+            <h3 style="font-size: 16px; color: #555; margin-bottom: 10px; border-bottom: 1px solid #ddd; padding-bottom: 5px;">📝 答案檢討 (已解鎖)：</h3>
+            <div id="review-container"></div>
+        </div>
     </div>
 
 </div>
@@ -227,7 +229,7 @@
             { q: "28. 話說回來，一波三折的我們，這趟旅行「最一開始」原本計畫的日期是哪時候？", options: ["2025年10月", "2025年12月", "2026年3月", "2026年4月"], ans: "2026年4月" }
         ];
 
-        const TIME_LIMIT = 30; // 修改為 30 秒
+        const TIME_LIMIT = 30;
 
         let currentQuestionIndex = 0;
         let score = 0;
@@ -245,7 +247,6 @@
             if(installBtn) installBtn.classList.remove('hidden'); 
         });
 
-        // 防護型按鈕監聽
         const installBtnEl = document.getElementById('installBtn');
         if (installBtnEl) {
             installBtnEl.addEventListener('click', async () => {
@@ -266,7 +267,6 @@
             }
         } catch(e) {}
 
-        // 加入 try-catch 防護，避免手機不支援 Notification 導致腳本崩潰
         function acceptWarning() {
             try {
                 if ('Notification' in window && typeof Notification.requestPermission === 'function') {
@@ -308,7 +308,6 @@
             timeLeft = TIME_LIMIT;
             document.getElementById("timer").innerText = `⏳ ${timeLeft}`;
             
-            // 更新進度條與文字
             const progressPercent = (currentQuestionIndex / questions.length) * 100;
             document.getElementById("progress-bar").style.width = `${progressPercent}%`;
             document.getElementById("progress-text").innerText = `進度: ${currentQuestionIndex + 1} / ${questions.length}`;
@@ -317,7 +316,6 @@
 
             const qData = questions[currentQuestionIndex];
             
-            // 這裡清掉自帶數字，如果有報錯也加上防護
             let qTextClean = qData.q;
             try { qTextClean = qData.q.replace(/^\d+\.\s*/, ''); } catch(e) {}
             
@@ -377,6 +375,7 @@
             
             document.getElementById("score-display").innerHTML = `${finalScore}<span style="font-size: 24px;"> 分</span>`;
 
+            // 先生成解答內容，但預設隱藏
             let reviewHTML = "";
             questions.forEach((q, index) => {
                 let uAns = userAnswers[index] || "無";
@@ -397,6 +396,10 @@
             });
             
             document.getElementById("review-container").innerHTML = reviewHTML;
+            
+            // 確保檢討區塊是隱藏狀態
+            document.getElementById("review-section").classList.add("hidden");
+            
             updateNetworkStatus();
         }
 
@@ -452,9 +455,13 @@
             .then(response => response.json())
             .then(result => {
                 if(result.status === "success") {
-                    alert("成績同步成功！準備下車驗收成果！🙌");
+                    alert("成績同步成功！答案檢討已為你解鎖！🙌");
                     try { localStorage.removeItem("nz_quiz_data"); } catch(e){}
-                    document.getElementById("uploadBtn").innerText = "同步完畢";
+                    document.getElementById("uploadBtn").innerText = "成績已同步完畢";
+                    document.getElementById("uploadBtn").disabled = true;
+                    
+                    // 解鎖顯示答案檢討區塊
+                    document.getElementById("review-section").classList.remove("hidden");
                 }
             })
             .catch(error => {
