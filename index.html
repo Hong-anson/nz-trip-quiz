@@ -103,7 +103,6 @@
         button:active { transform: scale(0.98); }
         button:disabled { background-color: #aaa; cursor: not-allowed; }
 
-        /* 特殊按鈕樣式 */
         #installBtn { background-color: #ff9500; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3); }
         #installBtn:hover { background-color: #e08400; }
 
@@ -152,7 +151,6 @@
 
     <div id="login-section" class="card hidden">
         <button id="installBtn" class="hidden">📲 點此將考卷安裝為手機 App</button>
-
         <p>請輸入你的大名或綽號：</p>
         <input type="text" id="playerName" placeholder="例如：南島車神..." style="width: 100%; padding: 15px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; border-radius: 10px; border: 1px solid #ddd; background: rgba(255,255,255,0.8);">
         <button onclick="startQuiz()">開始挑戰</button>
@@ -175,7 +173,7 @@
         <div id="review-container"></div>
 
         <p style="text-align: center; line-height: 1.5; font-size: 13px; color: #666; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px;">
-            成績已暫存。下飛機連上網路後，<br>手機通知列會發出提醒，請記得點擊同步成績。
+            成績已暫存。下飛機連上網路後，<br>手機會發出推播通知，請記得點擊同步成績。
         </p>
         
         <h3 style="text-align: center; font-size: 15px; color: #666; margin-top: 15px;">網路狀態：<span id="network-status">連線中</span></h3>
@@ -185,6 +183,7 @@
 </div>
 
     <script>
+        // 【已更新為你提供的 API】
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzb1WW1KrecM8LtZsJaInr8HhSFT_Pt733th1iQINLQn-xa9wadPaWMiXnUko8oSLHe/exec"; 
 
         const questions = [
@@ -204,13 +203,12 @@
         let timerInterval;
         let timeLeft = TIME_LIMIT;
 
-        // 監聽 PWA 可安裝事件 (適用於 Android/Chrome)
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
             const installBtn = document.getElementById('installBtn');
-            if(installBtn) installBtn.classList.remove('hidden'); // 顯示安裝按鈕
+            if(installBtn) installBtn.classList.remove('hidden'); 
         });
 
         document.getElementById('installBtn')?.addEventListener('click', async () => {
@@ -221,14 +219,12 @@
             }
         });
 
-        // 註冊 Service Worker
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready"));
+                navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready")).catch(e => console.log("SW Error"));
             }
         } catch(e) {}
 
-        // 點擊「瞭解規則」時，一併向手機請求「通知權限」
         function acceptWarning() {
             if ('Notification' in window) {
                 Notification.requestPermission().then(permission => {
@@ -315,12 +311,10 @@
             try {
                 localStorage.setItem("nz_quiz_data", JSON.stringify(finalData));
                 
-                // 【核心：註冊背景連線同步通知】
-                // 如果作答完當下是斷網的，就向系統註冊恢復網路時的通知
                 if (!navigator.onLine && 'serviceWorker' in navigator && 'SyncManager' in window) {
                     navigator.serviceWorker.ready.then(reg => {
                         return reg.sync.register('nz-sync-reminder');
-                    }).then(() => console.log("背景通知監聽已成功掛載！"));
+                    }).catch(e => console.log("Background sync error"));
                 }
             } catch(e) {}
             
@@ -349,18 +343,38 @@
         function updateNetworkStatus() {
             const statusText = document.getElementById("network-status");
             const uploadBtn = document.getElementById("uploadBtn");
+            
             if (navigator.onLine) {
                 statusText.innerText = "已恢復連線 🟢 (可同步)";
                 statusText.style.color = "#34c759";
-                try { if(localStorage.getItem("nz_quiz_data")) uploadBtn.disabled = false; } catch(e) {}
+                
+                try { 
+                    if(localStorage.getItem("nz_quiz_data")) {
+                        uploadBtn.disabled = false;
+                        
+                        // 【雙重保險】網路一恢復，立刻由前景發出推播通知
+                        if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                            navigator.serviceWorker.ready.then(reg => {
+                                reg.showNotification('🇳🇿 網路恢復囉！', {
+                                    body: '兄弟，你的成績還沒同步！請點擊送出讓團長記分。',
+                                    vibrate: [200, 100, 200],
+                                    tag: 'online-reminder',
+                                    requireInteraction: true
+                                });
+                            });
+                        }
+                    }
+                } catch(e) {}
             } else {
                 statusText.innerText = "離線中 🔴 (飛航模式)";
                 statusText.style.color = "#D9534F";
                 uploadBtn.disabled = true;
             }
         }
+        
         window.addEventListener('online', updateNetworkStatus);
         window.addEventListener('offline', updateNetworkStatus);
+        
         updateNetworkStatus();
 
         function uploadData() {
