@@ -1,0 +1,8 @@
+{
+  "name": "紐西蘭南島大會考",
+  "short_name": "NZ會考",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007AFF"
+}
