@@ -40,7 +40,6 @@
             z-index: -1; 
         }
 
-        /* 新增 position: relative，確保層級高於背景且按鈕可被點擊 */
         #pwa-content-wrapper {
             position: relative; 
             width: 100%;
@@ -104,6 +103,10 @@
         button:active { transform: scale(0.98); }
         button:disabled { background-color: #aaa; cursor: not-allowed; }
 
+        /* 特殊按鈕樣式 */
+        #installBtn { background-color: #ff9500; margin-bottom: 15px; box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3); }
+        #installBtn:hover { background-color: #e08400; }
+
         #cheat-warning { color: white; background-color: var(--accent-color); padding: 12px; border-radius: 10px; font-weight: bold; display: none; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(217, 83, 79, 0.3);}
         #timer { font-size: 32px; font-weight: 800; color: var(--accent-color); text-align: center; margin-bottom: 15px; font-variant-numeric: tabular-nums; }
         .alert-box { border-left: 6px solid var(--primary-color); background-color: rgba(26, 124, 147, 0.03); }
@@ -148,6 +151,8 @@
     </div>
 
     <div id="login-section" class="card hidden">
+        <button id="installBtn" class="hidden">📲 點此將考卷安裝為手機 App</button>
+
         <p>請輸入你的大名或綽號：</p>
         <input type="text" id="playerName" placeholder="例如：南島車神..." style="width: 100%; padding: 15px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; border-radius: 10px; border: 1px solid #ddd; background: rgba(255,255,255,0.8);">
         <button onclick="startQuiz()">開始挑戰</button>
@@ -170,7 +175,7 @@
         <div id="review-container"></div>
 
         <p style="text-align: center; line-height: 1.5; font-size: 13px; color: #666; background: rgba(0,0,0,0.05); padding: 10px; border-radius: 8px;">
-            成績已暫存。下飛機連上網路後，<br>請務必點擊下方按鈕將成績同步給我。
+            成績已暫存。下飛機連上網路後，<br>手機通知列會發出提醒，請記得點擊同步成績。
         </p>
         
         <h3 style="text-align: center; font-size: 15px; color: #666; margin-top: 15px;">網路狀態：<span id="network-status">連線中</span></h3>
@@ -180,10 +185,8 @@
 </div>
 
     <script>
-        // 你的 GAS API 網址 
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzb1WW1KrecM8LtZsJaInr8HhSFT_Pt733th1iQINLQn-xa9wadPaWMiXnUko8oSLHe/exec"; 
 
-        // [重要！] 貼上你的 15 題時，務必確認括號成對且逗號沒有漏掉
         const questions = [
             { q: "抵達紐西蘭後，我們預訂的 9 人座車是哪間租車公司的？", options: ["Hertz", "Enterprise", "Apex", "Avis"], ans: "Enterprise" },
             { q: "這次行程我們大夥主要入住的房型與過夜地點是？", options: ["青年旅館大背包房", "露營車過夜", "多公構築成的度假屋", "星級飯店雙人房"], ans: "多公構築成的度假屋" },
@@ -201,14 +204,37 @@
         let timerInterval;
         let timeLeft = TIME_LIMIT;
 
-        // 加入 try-catch 防止 Service Worker 在特定環境崩潰
+        // 監聽 PWA 可安裝事件 (適用於 Android/Chrome)
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const installBtn = document.getElementById('installBtn');
+            if(installBtn) installBtn.classList.remove('hidden'); // 顯示安裝按鈕
+        });
+
+        document.getElementById('installBtn')?.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') { deferredPrompt = null; document.getElementById('installBtn').classList.add('hidden'); }
+            }
+        });
+
+        // 註冊 Service Worker
         try {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready")).catch(e => console.log("SW 略過"));
+                navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready"));
             }
         } catch(e) {}
 
+        // 點擊「瞭解規則」時，一併向手機請求「通知權限」
         function acceptWarning() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(permission => {
+                    console.log("通知權限狀態:", permission);
+                });
+            }
             document.getElementById("intro-warning").classList.add("hidden");
             document.getElementById("login-section").classList.remove("hidden");
         }
@@ -230,10 +256,7 @@
 
         function startQuiz() {
             playerName = document.getElementById("playerName").value.trim();
-            if(!playerName) { 
-                alert("兄弟，名字要填啊！"); 
-                return; 
-            }
+            if(!playerName) { alert("兄弟，名字要填啊！"); return; }
             document.getElementById("login-section").classList.add("hidden");
             document.getElementById("quiz-section").classList.remove("hidden");
             loadQuestion();
@@ -243,8 +266,6 @@
             clearInterval(timerInterval);
             timeLeft = TIME_LIMIT;
             document.getElementById("timer").innerText = `⏳ ${timeLeft}`;
-            
-            // 防呆機制：如果題目陣列有誤，提早阻擋
             if(!questions || !questions[currentQuestionIndex]) return;
 
             const qData = questions[currentQuestionIndex];
@@ -271,26 +292,17 @@
 
         function nextQuestion() {
             const selected = document.querySelector('input[name="currentQ"]:checked');
-            if (!selected) {
-                alert("至少猜一個吧！時間快到囉！");
-                return;
-            }
+            if (!selected) { alert("至少猜一個吧！時間快到囉！"); return; }
             clearInterval(timerInterval);
             const answer = selected.value;
             userAnswers.push(answer);
-            if (answer === questions[currentQuestionIndex].ans) {
-                score += (100 / questions.length); 
-            }
+            if (answer === questions[currentQuestionIndex].ans) { score += (100 / questions.length); }
             checkQuizEnd();
         }
 
         function checkQuizEnd() {
             currentQuestionIndex++;
-            if (currentQuestionIndex < questions.length) {
-                loadQuestion();
-            } else {
-                finishQuiz();
-            }
+            if (currentQuestionIndex < questions.length) { loadQuestion(); } else { finishQuiz(); }
         }
 
         function finishQuiz() {
@@ -300,12 +312,17 @@
             let finalScore = Math.round(score);
             const finalData = { name: playerName, score: finalScore, cheatCount: cheatCount, answers: userAnswers };
             
-            // 加入 try-catch 防止 LocalStorage 在特定環境崩潰
             try {
                 localStorage.setItem("nz_quiz_data", JSON.stringify(finalData));
-            } catch(e) {
-                console.log("環境阻擋寫入暫存");
-            }
+                
+                // 【核心：註冊背景連線同步通知】
+                // 如果作答完當下是斷網的，就向系統註冊恢復網路時的通知
+                if (!navigator.onLine && 'serviceWorker' in navigator && 'SyncManager' in window) {
+                    navigator.serviceWorker.ready.then(reg => {
+                        return reg.sync.register('nz-sync-reminder');
+                    }).then(() => console.log("背景通知監聽已成功掛載！"));
+                }
+            } catch(e) {}
             
             document.getElementById("score-display").innerHTML = `${finalScore}<span style="font-size: 24px;"> 分</span>`;
 
@@ -313,7 +330,6 @@
             questions.forEach((q, index) => {
                 let uAns = userAnswers[index] || "無";
                 let isCorrect = (uAns === q.ans);
-                
                 let statusIcon = isCorrect ? "✅" : "❌";
                 let statusClass = isCorrect ? "correct-text" : "wrong-text";
                 let boxClass = isCorrect ? "correct" : "wrong";
@@ -327,7 +343,6 @@
             });
             
             document.getElementById("review-container").innerHTML = reviewHTML;
-
             updateNetworkStatus();
         }
 
@@ -337,9 +352,7 @@
             if (navigator.onLine) {
                 statusText.innerText = "已恢復連線 🟢 (可同步)";
                 statusText.style.color = "#34c759";
-                try {
-                    if(localStorage.getItem("nz_quiz_data")) uploadBtn.disabled = false;
-                } catch(e) {}
+                try { if(localStorage.getItem("nz_quiz_data")) uploadBtn.disabled = false; } catch(e) {}
             } else {
                 statusText.innerText = "離線中 🔴 (飛航模式)";
                 statusText.style.color = "#D9534F";
