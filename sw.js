@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nz-quiz-v5';
+const CACHE_NAME = 'nz-quiz-v8';
 const urlsToCache = [
   './',
   './index.html',

@@ -150,7 +150,7 @@
         <p>
             1. 本測驗專為<strong>飛航模式</strong>設計，全程無網路也可完整作答。<br><br>
             2. 每題限時 <strong>30 秒</strong>，時間到自動強制跳題，不可回頭。<br><br>
-            3. <strong>【防作弊機制已啟動】</strong> 凡是切換 APP、跳回主畫面偷看旅遊小書者，系統都會無情記錄！違規最多次的人下飛機請喝飲料！
+            3. <strong>【防作弊機制已啟動】</strong> 題目順序隨機，且凡是切換 APP、偷看行程者，系統都會無情記錄！違規最多次的人下飛機請喝飲料！
         </p>
         <button onclick="acceptWarning()">瞭解規則，進入系統</button>
     </div>
@@ -239,6 +239,14 @@
         let timerInterval;
         let timeLeft = TIME_LIMIT;
 
+        // 洗牌演算法：隨機打亂陣列順序
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
@@ -298,6 +306,10 @@
         function startQuiz() {
             playerName = document.getElementById("playerName").value.trim();
             if(!playerName) { alert("兄弟，名字要填啊！"); return; }
+            
+            // 遊戲開始前，徹底打亂題庫順序！
+            shuffleArray(questions);
+            
             document.getElementById("login-section").classList.add("hidden");
             document.getElementById("quiz-section").classList.remove("hidden");
             loadQuestion();
@@ -375,7 +387,6 @@
             
             document.getElementById("score-display").innerHTML = `${finalScore}<span style="font-size: 24px;"> 分</span>`;
 
-            // 先生成解答內容，但預設隱藏
             let reviewHTML = "";
             questions.forEach((q, index) => {
                 let uAns = userAnswers[index] || "無";
@@ -396,8 +407,6 @@
             });
             
             document.getElementById("review-container").innerHTML = reviewHTML;
-            
-            // 確保檢討區塊是隱藏狀態
             document.getElementById("review-section").classList.add("hidden");
             
             updateNetworkStatus();
@@ -460,7 +469,6 @@
                     document.getElementById("uploadBtn").innerText = "成績已同步完畢";
                     document.getElementById("uploadBtn").disabled = true;
                     
-                    // 解鎖顯示答案檢討區塊
                     document.getElementById("review-section").classList.remove("hidden");
                 }
             })
