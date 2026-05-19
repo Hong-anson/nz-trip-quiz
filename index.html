@@ -3,89 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- [可修改：網頁分頁名稱] -->
-    <title>紐西蘭行程大會考</title>
-    <!-- 呼叫 PWA 設定檔 -->
+    <title>NZ Adventure Quiz 🇳🇿</title>
     <link rel="manifest" href="manifest.json">
+    
     <style>
-        body { font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; background-color: #f9f9f9;}
-        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        .question-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; }
-        .option { display: block; margin-bottom: 10px; padding: 10px; background: #f1f1f1; border-radius: 5px; cursor: pointer; }
-        .option:hover { background: #e1e1e1; }
-        button { padding: 12px 24px; font-size: 16px; background-color: #007AFF; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%; margin-top: 10px;}
+        /* ==================== 整體設計與色調 (呼應紐西蘭大自然主視覺) ==================== */
+        :root {
+            /* 主要色調：採用紐西蘭蒂卡波湖的藍綠色 */
+            --primary-color: #1A7C93; 
+            /* 強調色調：用於計時器與作弊警告 */
+            --accent-color: #D9534F;
+            /* 卡片背景色：帶有高透明度的白色，呈現玻璃擬態質感 */
+            --card-bg-color: rgba(255, 255, 255, 0.9);
+            /* 網頁底層背景色 */
+            --body-bg-color: #F4F7F6;
+        }
+
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--body-bg-color);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* ==================== 離線背景照片防護層 ==================== */
+        body::after {
+            content: "";
+            position: fixed; /* 固定全螢幕背景 */
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            
+            /* 讀取專案內部的自備照片 */
+            background-image: url("./bg.jpg");
+            
+            background-repeat: no-repeat;
+            background-position: bottom center;
+            background-size: cover;
+            
+            /* 透明度設定：0.5 即為 50% 透明度 */
+            opacity: 0.5; 
+            z-index: -1; /* 確保照片死死釘在所有卡片大後方 */
+        }
+
+        /* 實際內容容器 */
+        #pwa-content-wrapper {
+            width: 100%;
+            max-width: 600px;
+            padding: 40px 20px;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+
+        /* 大標題樣式 */
+        h1 { 
+            color: var(--primary-color);
+            text-align: center;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 30px;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* 卡片統一樣式 */
+        .card { 
+            background: var(--card-bg-color); 
+            padding: 25px; 
+            border-radius: 16px; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.05); 
+            margin-bottom: 20px; 
+            backdrop-filter: blur(8px); /* 讓背景照片過渡得更柔和 */
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .question-title { font-size: 19px; font-weight: 700; margin-bottom: 20px; color: #333; line-height: 1.5;}
+        
+        /* 選項樣式優化 */
+        .option { 
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px; 
+            padding: 15px; 
+            background: rgba(245, 245, 245, 0.7); 
+            border-radius: 10px; 
+            cursor: pointer; 
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+        .option:hover { background: rgba(230, 230, 230, 0.8); }
+        .option input[type="radio"] { margin-right: 15px; transform: scale(1.3); }
+
+        /* 按鈕樣式 */
+        button { 
+            padding: 15px 24px; 
+            font-size: 16px; 
+            font-weight: 600;
+            background-color: var(--primary-color); 
+            color: white; 
+            border: none; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            width: 100%; 
+            margin-top: 10px;
+            transition: background-color 0.2s, transform 0.1s;
+            letter-spacing: 1px;
+        }
+        button:hover { background-color: #146275; } 
+        button:active { transform: scale(0.98); }
         button:disabled { background-color: #aaa; cursor: not-allowed; }
-        #cheat-warning { color: white; background-color: #ff3b30; padding: 10px; border-radius: 5px; font-weight: bold; display: none; text-align: center; margin-bottom: 15px;}
-        #timer { font-size: 24px; font-weight: bold; color: #ff3b30; text-align: center; margin-bottom: 15px; }
+
+        /* 警告與計時器 */
+        #cheat-warning { color: white; background-color: var(--accent-color); padding: 12px; border-radius: 10px; font-weight: bold; display: none; text-align: center; margin-bottom: 15px; box-shadow: 0 4px 8px rgba(217, 83, 79, 0.3);}
+        #timer { font-size: 32px; font-weight: 800; color: var(--accent-color); text-align: center; margin-bottom: 15px; font-variant-numeric: tabular-nums; }
+        .alert-box { border-left: 6px solid var(--primary-color); background-color: rgba(26, 124, 147, 0.03); }
+        .alert-box h2 { color: var(--primary-color); }
         .hidden { display: none !important; }
-        /* 警語區塊的特別樣式 */
-        .alert-box { border-left: 5px solid #ffcc00; background-color: #fff8e1; }
+        
+        hr { border: 0; border-top: 1px solid #eef2f1; margin: 25px 0; }
+        #network-status { font-weight: 600; }
     </style>
 </head>
 <body>
 
-    <!-- [可修改：大標題] -->
-    <h1>🇳🇿 紐西蘭南島大會考</h1>
+<div id="pwa-content-wrapper">
+
+    <h1>🇳🇿 NZ Adventure Quiz</h1>
     
-    <!-- 測驗中作弊的即時警告 (預設隱藏) -->
-    <!-- [可修改：作弊警告文字，${cheatCount}為程式變數請保留] -->
-    <div id="cheat-warning">⚠️ 警告：你已切換畫面偷看！目前違規次數：<span id="cheat-num"></span> 次</div>
+    <div id="cheat-warning">⚠️ 偵測到畫面切換！目前累計違規：<span id="cheat-num"></span> 次</div>
     
-    <!-- ==================== 1. 進入考卷時的警語區塊 ==================== -->
     <div id="intro-warning" class="card alert-box">
-        <!-- [可修改：警語標題] -->
-        <h2 style="margin-top: 0;">🚨 登機前必讀規則</h2>
-        <!-- [可修改：警語內容規則說明] -->
+        <h2 style="margin-top: 0;">🚨 登機前最後確認</h2>
         <p>
-            1. 本測驗專為漫長的飛航模式設計，無網路也可作答。<br><br>
-            2. 每題限時 <strong>15 秒</strong>，時間一到系統會無情地直接跳下一題。<br><br>
-            3. <strong>【防作弊啟動】</strong> 只要你切換 APP、跳回主畫面、或下拉通知去偷看行程小書，系統都會立刻抓到並記錄違規次數。違規最多次的下車請喝飲料！
+            1. 本測驗專為<strong>飛航模式</strong>設計，全程無網路也可完整作答。<br><br>
+            2. 每題高壓限時 <strong>15 秒</strong>，時間到自動強制跳題，不可回頭。<br><br>
+            3. <strong>【防作弊機制已啟動】</strong> 凡是切換 APP、跳回主畫面偷看旅遊小書或截圖者，系統都會無情記錄！違規最多次的人下飛機請喝飲料！
         </p>
-        <!-- [可修改：確認按鈕文字] -->
-        <button onclick="acceptWarning()">我瞭解規則，進入系統</button>
+        <button onclick="acceptWarning()">瞭解規則，進入系統</button>
     </div>
 
-    <!-- ==================== 2. 登入區 ==================== -->
     <div id="login-section" class="card hidden">
-        <!-- [可修改：登入提示文字] -->
-        <p>請輸入你的姓名：</p>
-        <!-- [可修改：輸入框內的預設提示 (placeholder)] -->
-        <input type="text" id="playerName" placeholder="輸入本名或綽號..." style="width: 100%; padding: 10px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box;" required>
-        <!-- [可修改：開始按鈕文字] -->
-        <button onclick="startQuiz()">開始測驗</button>
+        <p>請輸入你的大名或綽號：</p>
+        <input type="text" id="playerName" placeholder="例如：南島車神..." style="width: 100%; padding: 15px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; border-radius: 10px; border: 1px solid #ddd; background: rgba(255,255,255,0.8);">
+        <button onclick="startQuiz()">開始挑戰</button>
     </div>
 
-    <!-- ==================== 3. 測驗區 ==================== -->
     <div id="quiz-section" class="card hidden">
-        <!-- [可修改：計時器前面的符號] -->
         <div id="timer">⏳ 15</div>
         <div id="question-text" class="question-title">問題載入中...</div>
         <div id="options-container"></div>
-        <!-- [可修改：下一題按鈕文字] -->
-        <button onclick="nextQuestion()" id="nextBtn">下一題</button>
+        <button onclick="nextQuestion()" id="nextBtn">送出答案</button>
     </div>
 
-    <!-- ==================== 4. 結果與上傳區 ==================== -->
     <div id="result-section" class="card hidden">
-        <!-- [可修改：作答完成標題] -->
-        <h2 style="text-align: center;">作答完畢！🎉</h2>
-        <!-- [可修改：作答完成說明] -->
-        <p style="text-align: center;">答案已儲存至手機暫存檔。<br>下飛機連上網路後，請務必點擊下方按鈕將成績傳送給我。</p>
+        <h2 style="text-align: center; color: var(--primary-color);">Kia Ora! 作答完畢！🎉</h2>
+        <p style="text-align: center; line-height: 1.6;">
+            你的答案已安全儲存至手機暫存區。<br><br>
+            下飛機連上網路後，請回到此頁面，<br>點擊下方按鈕將成績「同步」給我。
+        </p>
         <hr>
-        <h3 style="text-align: center;">網路狀態：<span id="network-status">連線中</span></h3>
-        <!-- [可修改：上傳按鈕文字] -->
-        <button id="uploadBtn" onclick="uploadData()" disabled style="background-color: #34c759;">上傳成績至伺服器</button>
+        <h3 style="text-align: center; font-size: 16px; color: #666;">網路狀態：<span id="network-status">連線中</span></h3>
+        <button id="uploadBtn" onclick="uploadData()" disabled style="background-color: #34c759; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.3);">同步成績至伺服器</button>
     </div>
+
+</div>
 
     <script>
-        // [可修改：把這段字串換成你剛剛在 GAS 複製的 Web App URL]
+        // 自動帶入你的 GAS Web App URL
         const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzb1WW1KrecM8LtZsJaInr8HhSFT_Pt733th1iQINLQn-xa9wadPaWMiXnUko8oSLHe/exec"; 
 
-        // [可修改：題庫區，依照格式增減至 15 題。ans 必須與 options 裡的其中一個字串完全一致]
+        // [可修改：題庫區，請依照格式自由複製、刪減或修改。ans必須與options裡的某個文字完全相同]
         const questions = [
-            { q: "我們那台 9 人座車是跟哪間租車公司租的？", options: ["Hertz", "Enterprise", "Apex"], ans: "Enterprise" },
-            { q: "這次行程我們大夥主要住的房型是？", options: ["青年旅館大背包房", "多公寓型度假屋", "豪華露營車"], ans: "多公寓型度假屋" },
-            { q: "我們的目的地是紐西蘭的哪個島？", options: ["北島", "南島", "斯圖爾特島"], ans: "南島" }
+            { q: "抵達紐西蘭後，我們一夥預訂的 9 人座車是跟哪間租車公司預訂的？", options: ["Hertz", "Enterprise", "Apex", "Avis"], ans: "Enterprise" },
+            { q: "這次行程我們大夥主要入住的房型與過夜地點是？", options: ["青年旅館大背包房", "露營車過夜", "多公構築成的度假屋", "星級飯店雙人房"], ans: "多公構築成的度假屋" },
+            { q: "這趟行程我們主要自駕與拍攝風景的精華區域在紐西蘭的哪裡？", options: ["北島", "南島", "斯圖爾特島"], ans: "南島" },
+            { q: "如果因為切換畫面看行程而被抓到，最後的處置是？", options: ["留下來洗碗", "下車請全體喝飲料", "負責開最難開的山路", "幫大家背相機腳架"], ans: "下車請全體喝飲料" }
         ];
 
         // [可修改：每題倒數秒數]
@@ -100,18 +197,15 @@
         let timerInterval;
         let timeLeft = TIME_LIMIT;
 
-        // 註冊 Service Worker (PWA 核心)
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready"));
         }
 
-        // 關閉警語，進入登入畫面
         function acceptWarning() {
             document.getElementById("intro-warning").classList.add("hidden");
             document.getElementById("login-section").classList.remove("hidden");
         }
 
-        // 防作弊機制
         document.addEventListener("visibilitychange", () => {
             if (document.visibilityState === 'hidden' && !document.getElementById("quiz-section").classList.contains("hidden")) { recordCheat(); }
         });
@@ -124,13 +218,12 @@
             const warningEl = document.getElementById("cheat-warning");
             document.getElementById("cheat-num").innerText = cheatCount;
             warningEl.style.display = "block";
-            setTimeout(() => { warningEl.style.display = "none"; }, 3000); 
+            setTimeout(() => { warningEl.style.display = "none"; }, 4000); 
         }
 
         function startQuiz() {
             playerName = document.getElementById("playerName").value.trim();
             if(!playerName) { 
-                // [可修改：未填姓名的警告視窗文字]
                 alert("兄弟，名字要填啊！"); 
                 return; 
             }
@@ -150,7 +243,7 @@
             qData.options.forEach(opt => {
                 const label = document.createElement("label");
                 label.className = "option";
-                label.innerHTML = `<input type="radio" name="currentQ" value="${opt}"> ${opt}`;
+                label.innerHTML = `<input type="radio" name="currentQ" value="${opt}"> <span>${opt}</span>`;
                 optionsContainer.appendChild(label);
             });
 
@@ -168,8 +261,7 @@
         function nextQuestion() {
             const selected = document.querySelector('input[name="currentQ"]:checked');
             if (!selected) {
-                // [可修改：未選擇答案的警告視窗文字]
-                alert("請至少猜一個答案！");
+                alert("至少猜一個吧！時間快到囉！");
                 return;
             }
             clearInterval(timerInterval);
@@ -202,14 +294,12 @@
             const statusText = document.getElementById("network-status");
             const uploadBtn = document.getElementById("uploadBtn");
             if (navigator.onLine) {
-                // [可修改：連線狀態文字]
-                statusText.innerText = "已連線 🟢";
-                statusText.style.color = "green";
+                statusText.innerText = "已恢復連線 🟢 (可同步)";
+                statusText.style.color = "#34c759";
                 if(localStorage.getItem("nz_quiz_data")) uploadBtn.disabled = false;
             } else {
-                // [可修改：斷線狀態文字]
                 statusText.innerText = "離線中 🔴 (飛航模式)";
-                statusText.style.color = "red";
+                statusText.style.color = "#D9534F";
                 uploadBtn.disabled = true;
             }
         }
@@ -220,8 +310,7 @@
         function uploadData() {
             const dataStr = localStorage.getItem("nz_quiz_data");
             if(!dataStr) return;
-            // [可修改：上傳中的按鈕文字]
-            document.getElementById("uploadBtn").innerText = "資料發送中...";
+            document.getElementById("uploadBtn").innerText = "資料傳送中...";
             document.getElementById("uploadBtn").disabled = true;
             fetch(GAS_API_URL, {
                 method: "POST",
@@ -231,17 +320,14 @@
             .then(response => response.json())
             .then(result => {
                 if(result.status === "success") {
-                    // [可修改：上傳成功的彈跳視窗文字]
-                    alert("成績上傳成功！");
+                    alert("成績上傳成功！你真棒！🙌");
                     localStorage.removeItem("nz_quiz_data");
-                    // [可修改：上傳完畢的按鈕文字]
-                    document.getElementById("uploadBtn").innerText = "上傳完畢";
+                    document.getElementById("uploadBtn").innerText = "同步完畢";
                 }
             })
             .catch(error => {
-                // [可修改：上傳失敗的彈跳視窗文字]
-                alert("機場網路可能不穩，請稍後再試。");
-                document.getElementById("uploadBtn").innerText = "重新上傳成績";
+                alert("網速可能不穩，請稍後再試一次。");
+                document.getElementById("uploadBtn").innerText = "再次嘗試同步成績";
                 document.getElementById("uploadBtn").disabled = false;
             });
         }
