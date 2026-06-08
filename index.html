@@ -83,7 +83,7 @@
             border: 1px solid transparent;
         }
         .option:hover { background: rgba(230, 230, 230, 0.8); }
-        .option input[type="radio"] { margin-right: 15px; transform: scale(1.3); }
+        .option input[type="radio"], .option input[type="checkbox"] { margin-right: 15px; transform: scale(1.3); }
 
         button { 
             padding: 15px 24px; 
@@ -208,7 +208,15 @@
             { q: "7. 我們 6 月冬天去南島，運氣好還有機會看到「南極光 (Aurora Australis)」。請問南極光通常會呈現什麼顏色為主？", options: ["紅色與紫色", "粉綠色與粉紅色", "深藍色與黃色", "純白色"], ans: "粉綠色與粉紅色" },
             { q: "8. 我們這趟飛往紐西蘭奧克蘭的國際線，多數人是搭乘哪一間航空公司？", options: ["長榮航空", "紐西蘭航空", "中華航空", "國泰航空"], ans: "國泰航空" },
             { q: "9. 我們去塔斯曼冰川健行，假設嚮導帶大夥先向東直走 5 公里，接著向北直走 12 公里。請問此時我們距離出發點的「直線距離」是幾公里？", options: ["7 公里", "12 公里", "13 公里", "15 公里"], ans: "13 公里" },
-            { q: "10. 出發前大家各種討論，請問我們在旅行前獲得的「最大驚喜」是什麼？", options: ["機票被免費升等", "租車公司免費升級大車", "有人宣佈要結婚", "有下一個寶寶準備誕生"], ans: "有下一個寶寶準備誕生" },
+            
+            // --- 第 10 題：改為複選題 ---
+            { 
+                q: "10. 每個人都有彼此內心深處得秘密，請問我們在趟旅行上你們覺會得知什麼樣的「秘密」，要跟大家說？", 
+                options: ["有人決定要離婚", "有人脫離單身", "有人生了重病需要治療", "有下一個寶寶準備誕生"], 
+                ans: ["有人脫離單身", "有下一個寶寶準備誕生"], // 正解設定為陣列
+                type: "multi" // 標記為複選
+            },
+
             { q: "11. 到了紐西蘭餐廳吃飽準備結帳，最道地的英文說法是？", options: ["Give me money!", "Can I get the bill, please?", "Check out!", "Pay time!"], ans: "Can I get the bill, please?" },
             { q: "12. 我們 9 人座車的自駕路線，起點與終點分別是哪兩個城市？", options: ["奧克蘭 ➔ 基督城", "基督城 ➔ 皇后鎮", "皇后鎮 ➔ 基督城", "基督城 ➔ 但尼丁"], ans: "基督城 ➔ 皇后鎮" },
             { q: "13. 我們會去蒂阿瑙看藍光螢火蟲。請問這些螢火蟲在黑暗中發光的「真實目的」是什麼？", options: ["為了吸引異性交配", "為了覓食吸引獵物上鉤", "為了警告掠食者", "純粹吃錯東西肚子發光"], ans: "為了覓食吸引獵物上鉤" },
@@ -239,7 +247,6 @@
         let timerInterval;
         let timeLeft = TIME_LIMIT;
 
-        // 洗牌演算法：隨機打亂陣列順序
         function shuffleArray(array) {
             for (let i = array.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -261,39 +268,21 @@
                 if (deferredPrompt) {
                     deferredPrompt.prompt();
                     const { outcome } = await deferredPrompt.userChoice;
-                    if (outcome === 'accepted') { 
-                        deferredPrompt = null; 
-                        installBtnEl.classList.add('hidden'); 
-                    }
+                    if (outcome === 'accepted') { deferredPrompt = null; installBtnEl.classList.add('hidden'); }
                 }
             });
         }
 
-        try {
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready")).catch(e => console.log("SW Error"));
-            }
-        } catch(e) {}
+        try { if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(() => console.log("PWA Ready")).catch(e => console.log("SW Error")); } } catch(e) {}
 
         function acceptWarning() {
-            try {
-                if ('Notification' in window && typeof Notification.requestPermission === 'function') {
-                    Notification.requestPermission().then(permission => {
-                        console.log("通知權限狀態:", permission);
-                    }).catch(e => console.log(e));
-                }
-            } catch(e) {}
-            
+            try { if ('Notification' in window && typeof Notification.requestPermission === 'function') { Notification.requestPermission().then(permission => console.log("通知權限:", permission)).catch(e => console.log(e)); } } catch(e) {}
             document.getElementById("intro-warning").classList.add("hidden");
             document.getElementById("login-section").classList.remove("hidden");
         }
 
-        document.addEventListener("visibilitychange", () => {
-            if (document.visibilityState === 'hidden' && !document.getElementById("quiz-section").classList.contains("hidden")) { recordCheat(); }
-        });
-        window.addEventListener("blur", () => {
-            if (!document.getElementById("quiz-section").classList.contains("hidden")) { recordCheat(); }
-        });
+        document.addEventListener("visibilitychange", () => { if (document.visibilityState === 'hidden' && !document.getElementById("quiz-section").classList.contains("hidden")) recordCheat(); });
+        window.addEventListener("blur", () => { if (!document.getElementById("quiz-section").classList.contains("hidden")) recordCheat(); });
 
         function recordCheat() {
             cheatCount++;
@@ -306,10 +295,7 @@
         function startQuiz() {
             playerName = document.getElementById("playerName").value.trim();
             if(!playerName) { alert("兄弟，名字要填啊！"); return; }
-            
-            // 遊戲開始前，徹底打亂題庫順序！
             shuffleArray(questions);
-            
             document.getElementById("login-section").classList.add("hidden");
             document.getElementById("quiz-section").classList.remove("hidden");
             loadQuestion();
@@ -327,18 +313,21 @@
             if(!questions || !questions[currentQuestionIndex]) return;
 
             const qData = questions[currentQuestionIndex];
+            const isMulti = qData.type === "multi"; // 判斷
             
             let qTextClean = qData.q;
             try { qTextClean = qData.q.replace(/^\d+\.\s*/, ''); } catch(e) {}
             
-            document.getElementById("question-text").innerText = `Q${currentQuestionIndex + 1}: ${qTextClean}`; 
+            const multiHint = isMulti ? '<br><span style="color: #D9534F; font-size: 14px;">(⚠️ 本題為複選題，全對才給分)</span>' : '';
+            document.getElementById("question-text").innerHTML = `Q${currentQuestionIndex + 1}: ${qTextClean} ${multiHint}`; 
             
             const optionsContainer = document.getElementById("options-container");
             optionsContainer.innerHTML = "";
             qData.options.forEach(opt => {
                 const label = document.createElement("label");
                 label.className = "option";
-                label.innerHTML = `<input type="radio" name="currentQ" value="${opt}"> <span>${opt}</span>`;
+                const inputType = isMulti ? "checkbox" : "radio";
+                label.innerHTML = `<input type="${inputType}" name="currentQ" value="${opt}"> <span>${opt}</span>`;
                 optionsContainer.appendChild(label);
             });
 
@@ -354,12 +343,30 @@
         }
 
         function nextQuestion() {
-            const selected = document.querySelector('input[name="currentQ"]:checked');
-            if (!selected) { alert("至少猜一個吧！時間快到囉！"); return; }
+            const qData = questions[currentQuestionIndex];
+            const isMulti = qData.type === "multi";
+            let answer;
+            let isCorrect = false;
+
+            if (isMulti) {
+                const selectedBoxes = document.querySelectorAll('input[name="currentQ"]:checked');
+                if (selectedBoxes.length === 0) { alert("複選題至少也要猜一個選項吧！"); return; }
+                answer = Array.from(selectedBoxes).map(cb => cb.value);
+
+                // 判斷邏輯：勾選數量一樣，且每個勾選的都在正解陣列內
+                if (answer.length === qData.ans.length && answer.every(val => qData.ans.includes(val))) {
+                    isCorrect = true;
+                }
+            } else {
+                const selected = document.querySelector('input[name="currentQ"]:checked');
+                if (!selected) { alert("至少猜一個吧！時間快到囉！"); return; }
+                answer = selected.value;
+                if (answer === qData.ans) isCorrect = true;
+            }
+
             clearInterval(timerInterval);
-            const answer = selected.value;
             userAnswers.push(answer);
-            if (answer === questions[currentQuestionIndex].ans) { score += (100 / questions.length); }
+            if (isCorrect) { score += (100 / questions.length); }
             checkQuizEnd();
         }
 
@@ -375,67 +382,52 @@
             let finalScore = Math.round(score);
             const finalData = { name: playerName, score: finalScore, cheatCount: cheatCount, answers: userAnswers };
             
-            try {
-                localStorage.setItem("nz_quiz_data", JSON.stringify(finalData));
-                
-                if (!navigator.onLine && 'serviceWorker' in navigator && 'SyncManager' in window) {
-                    navigator.serviceWorker.ready.then(reg => {
-                        return reg.sync.register('nz-sync-reminder');
-                    }).catch(e => console.log("Background sync error"));
-                }
-            } catch(e) {}
+            try { localStorage.setItem("nz_quiz_data", JSON.stringify(finalData)); } catch(e) {}
             
             document.getElementById("score-display").innerHTML = `${finalScore}<span style="font-size: 24px;"> 分</span>`;
 
             let reviewHTML = "";
             questions.forEach((q, index) => {
-                let uAns = userAnswers[index] || "無";
-                let isCorrect = (uAns === q.ans);
+                let uAns = userAnswers[index];
+                let isMulti = q.type === "multi";
+                let isCorrect = false;
+                let uAnsText = "無";
+                let correctText = isMulti ? q.ans.join("、") : q.ans;
+
+                if (uAns === "超時未答" || !uAns) {
+                    uAnsText = "超時未答";
+                } else if (isMulti) {
+                    uAnsText = uAns.join("、");
+                    isCorrect = (uAns.length === q.ans.length && uAns.every(val => q.ans.includes(val)));
+                } else {
+                    uAnsText = uAns;
+                    isCorrect = (uAns === q.ans);
+                }
+
                 let statusIcon = isCorrect ? "✅" : "❌";
                 let statusClass = isCorrect ? "correct-text" : "wrong-text";
                 let boxClass = isCorrect ? "correct" : "wrong";
-                
-                let qTextClean = q.q;
-                try { qTextClean = q.q.replace(/^\d+\.\s*/, ''); } catch(e) {}
+                let qTextClean = q.q.replace(/^\d+\.\s*/, '');
                 
                 reviewHTML += `
                 <div class="review-item ${boxClass}">
                     <div class="review-q">Q${index + 1}: ${qTextClean}</div>
-                    <div style="margin-bottom: 3px;">你的答案：<span class="${statusClass}">${statusIcon} ${uAns}</span></div>
-                    ${!isCorrect ? `<div>正確答案：<span class="correct-text">${q.ans}</span></div>` : ""}
+                    <div style="margin-bottom: 3px;">你的答案：<span class="${statusClass}">${statusIcon} ${uAnsText}</span></div>
+                    ${!isCorrect ? `<div>正確答案：<span class="correct-text">${correctText}</span></div>` : ""}
                 </div>`;
             });
             
             document.getElementById("review-container").innerHTML = reviewHTML;
-            document.getElementById("review-section").classList.add("hidden");
-            
             updateNetworkStatus();
         }
 
         function updateNetworkStatus() {
             const statusText = document.getElementById("network-status");
             const uploadBtn = document.getElementById("uploadBtn");
-            
             if (navigator.onLine) {
                 statusText.innerText = "已恢復連線 🟢 (可同步)";
                 statusText.style.color = "#34c759";
-                
-                try { 
-                    if(localStorage.getItem("nz_quiz_data")) {
-                        uploadBtn.disabled = false;
-                        
-                        if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-                            navigator.serviceWorker.ready.then(reg => {
-                                reg.showNotification('🇳🇿 網路恢復囉！', {
-                                    body: '兄弟，你的成績還沒同步！請點擊送出讓負責人記分。',
-                                    vibrate: [200, 100, 200],
-                                    tag: 'online-reminder',
-                                    requireInteraction: true
-                                });
-                            });
-                        }
-                    }
-                } catch(e) {}
+                if(localStorage.getItem("nz_quiz_data")) uploadBtn.disabled = false;
             } else {
                 statusText.innerText = "離線中 🔴 (飛航模式)";
                 statusText.style.color = "#D9534F";
@@ -445,36 +437,25 @@
         
         window.addEventListener('online', updateNetworkStatus);
         window.addEventListener('offline', updateNetworkStatus);
-        
         updateNetworkStatus();
 
         function uploadData() {
             let dataStr = null;
             try { dataStr = localStorage.getItem("nz_quiz_data"); } catch(e) {}
             if(!dataStr) return;
-            
-            document.getElementById("uploadBtn").innerText = "資料傳送中...";
+            document.getElementById("uploadBtn").innerText = "傳送中...";
             document.getElementById("uploadBtn").disabled = true;
-            
-            fetch(GAS_API_URL, {
-                method: "POST",
-                body: dataStr,
-                headers: { "Content-Type": "text/plain;charset=utf-8" } 
-            })
+            fetch(GAS_API_URL, { method: "POST", body: dataStr, headers: { "Content-Type": "text/plain;charset=utf-8" } })
             .then(response => response.json())
             .then(result => {
                 if(result.status === "success") {
-                    alert("成績同步成功！答案檢討已為你解鎖！🙌");
+                    alert("同步成功！解答已解鎖！🙌");
                     try { localStorage.removeItem("nz_quiz_data"); } catch(e){}
-                    document.getElementById("uploadBtn").innerText = "成績已同步完畢";
-                    document.getElementById("uploadBtn").disabled = true;
-                    
+                    document.getElementById("uploadBtn").innerText = "已同步";
                     document.getElementById("review-section").classList.remove("hidden");
                 }
-            })
-            .catch(error => {
-                alert("網速可能不穩，請稍後再試一次。");
-                document.getElementById("uploadBtn").innerText = "再次嘗試同步成績";
+            }).catch(e => {
+                alert("同步失敗，請稍後再試。");
                 document.getElementById("uploadBtn").disabled = false;
             });
         }
