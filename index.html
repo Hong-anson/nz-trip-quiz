@@ -163,6 +163,24 @@
             margin-bottom: 20px;
             border: 3px solid rgba(255,255,255,0.2);
         }
+        
+        /* 關閉 Icon 樣式 */
+        .close-btn {
+            position: fixed;
+            top: 20px;
+            right: 25px;
+            color: #fff;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+            z-index: 10000;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            transition: color 0.2s;
+        }
+        .close-btn:hover {
+            color: var(--accent-color);
+        }
     </style>
 </head>
 <body>
@@ -224,10 +242,10 @@
 </div>
 
 <div id="photo-modal" class="hidden">
-    <h2 style="color: white; margin-bottom: 25px; text-align: center; font-size: 24px; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">🎉 真相大白！恭喜兄弟 🎉</h2>
+    <span class="close-btn" onclick="closeSecretPhotos()">&times;</span>
+    <h2 style="color: white; margin-bottom: 25px; text-align: center; font-size: 24px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); margin-top: 20px;">🎉 真相大白！恭喜兄弟 🎉</h2>
     <img src="./photo1.jpg" class="modal-img" alt="脫單驚喜">
     <img src="./photo2.jpg" class="modal-img" alt="寶寶驚喜">
-    <button onclick="closeSecretPhotos()" style="background-color: rgba(255,255,255,0.2); color: white; width: auto; padding: 12px 40px; margin-top: 10px; border: 1px solid rgba(255,255,255,0.5);">關閉照片</button>
 </div>
 
     <script>
