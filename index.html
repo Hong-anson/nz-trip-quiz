@@ -136,50 +136,62 @@
         .review-q { font-weight: bold; margin-bottom: 5px; color: #333; line-height: 1.4; }
         #review-container { max-height: 300px; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
 
-        /* 全螢幕照片畫廊專用樣式 */
-        #photo-modal {
+        /* 兩個獨立的全螢幕照片畫廊通用樣式 */
+        .photo-modal-base {
             position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0, 0, 0, 0.98);
             z-index: 9999;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            overflow-y: auto;
-            padding: 40px 20px;
+            justify-content: center;
+            padding: 20px;
             box-sizing: border-box;
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
         }
-        .modal-img {
-            max-width: 100%;
-            max-height: 40vh;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+
+        .modal-header {
+            text-align: center;
+            color: white;
+            z-index: 10001;
             margin-bottom: 20px;
-            border: 3px solid rgba(255,255,255,0.2);
+        }
+
+        .photo-modal-base img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
+            object-fit: contain;
+            border: 2px solid rgba(255,255,255,0.1);
         }
         
-        /* 關閉 Icon 樣式 */
         .close-btn {
-            position: fixed;
+            position: absolute;
             top: 20px;
-            right: 25px;
+            right: 20px;
             color: #fff;
-            font-size: 40px;
+            font-size: 35px;
             font-weight: bold;
             cursor: pointer;
-            line-height: 1;
-            z-index: 10000;
-            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
-            transition: color 0.2s;
+            z-index: 10002;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            transition: color 0.2s, background 0.2s;
         }
         .close-btn:hover {
             color: var(--accent-color);
+            background: rgba(255,255,255,0.2);
         }
     </style>
 </head>
@@ -212,7 +224,7 @@
         <div class="progress-container">
             <div id="progress-bar" class="progress-fill"></div>
         </div>
-        <div id="progress-text">進度: 1 / 28</div>
+        <div id="progress-text">進度: 1 / 29</div>
 
         <div id="timer">⏳ 30</div>
         <div id="question-text" class="question-title">問題載入中...</div>
@@ -241,11 +253,20 @@
 
 </div>
 
-<div id="photo-modal" class="hidden">
-    <span class="close-btn" onclick="closeSecretPhotos()">&times;</span>
-    <h2 style="color: white; margin-bottom: 25px; text-align: center; font-size: 24px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); margin-top: 20px;">🎉 真相大白！恭喜兄弟 🎉</h2>
-    <img src="./photo1.jpg" class="modal-img" alt="脫單驚喜">
-    <img src="./photo2.jpg" class="modal-img" alt="寶寶驚喜">
+<div id="photo-modal-baby" class="hidden photo-modal-base">
+    <div class="close-btn" onclick="closePhotoBaby()">&times;</div>
+    <div class="modal-header">
+        <h2 style="font-size: 24px; margin: 0;">🎉 狂賀！二寶降臨 🎉</h2>
+    </div>
+    <img src="./photo_baby.jpg" alt="寶寶驚喜照">
+</div>
+
+<div id="photo-modal-couple" class="hidden photo-modal-base">
+    <div class="close-btn" onclick="closePhotoCouple()">&times;</div>
+    <div class="modal-header">
+        <h2 style="font-size: 24px; margin: 0;">🎉 專屬驚喜大公開 🎉</h2>
+    </div>
+    <img src="./photo_couple.jpg" alt="女友專屬驚喜照">
 </div>
 
     <script>
@@ -262,33 +283,41 @@
             { q: "8. 我們這趟飛往紐西蘭奧克蘭的國際線，多數人是搭乘哪一間航空公司？", options: ["長榮航空", "紐西蘭航空", "中華航空", "國泰航空"], ans: "國泰航空" },
             { q: "9. 我們去塔斯曼冰川健行，假設嚮導帶大夥先向東直走 5 公里，接著向北直走 12 公里。請問此時我們距離出發點的「直線距離」是幾公里？", options: ["7 公里", "12 公里", "13 公里", "15 公里"], ans: "13 公里" },
             
-            // --- 第 10 題：加入專屬 id 準備置頂與召喚照片 ---
+            // --- 第 10 題：單選題，專屬超音波照片 ID ---
             { 
-                id: "secret_q",
+                id: "secret_baby",
                 q: "10. 每個人都有彼此內心深處的秘密，請問我們在這趟旅行上你們覺得會得知什麼樣的「秘密」，要跟大家說？", 
-                options: ["有人決定要離婚", "有人脫離單身", "有人生了重病需要治療", "有下一個寶寶準備誕生"], 
-                ans: ["有人脫離單身", "有下一個寶寶準備誕生"], 
-                type: "multi" 
+                options: ["有人決定要離婚", "有人急需金錢周轉", "有人生了重病需要治療", "有下一個寶寶準備誕生"], 
+                ans: "有下一個寶寶準備誕生"
             },
 
-            { q: "11. 到了紐西蘭餐廳吃飽準備結帳，最道地的英文說法是？", options: ["Give me money!", "Can I get the bill, please?", "Check out!", "Pay time!"], ans: "Can I get the bill, please?" },
-            { q: "12. 我們 9 人座車的自駕路線，起點與終點分別是哪兩個城市？", options: ["奧克蘭 ➔ 基督城", "基督城 ➔ 皇后鎮", "皇后鎮 ➔ 基督城", "基督城 ➔ 但尼丁"], ans: "基督城 ➔ 皇后鎮" },
-            { q: "13. 我們會去蒂阿瑙看藍光螢火蟲。請問這些螢火蟲在黑暗中發光的「真實目的」是什麼？", options: ["為了吸引異性交配", "為了覓食吸引獵物上鉤", "為了警告掠食者", "純粹吃錯東西肚子發光"], ans: "為了覓食吸引獵物上鉤" },
-            { q: "14. 去紐西蘭住民宿或飯店，帶電器過去時必須準備哪一種形狀的轉接頭？", options: ["圓形雙孔 (Type C)", "三腳方形 (Type G)", "八字型三孔 (Type I)", "平行扁頭 (Type A)"], ans: "八字型三孔 (Type I)" },
-            { q: "15. 我們這次旅程出發與回程的確切日期是哪一天？", options: ["6月15日至6月25日", "6月19日至6月29日", "6月20日至6月30日", "6月22日至7月2日"], ans: "6月19日至6月29日" },
-            { q: "16. 手提行李過安檢時，隨身液體的單一容器容量絕對不能超過多少？", options: ["50 毫升 (ml)", "100 毫升 (ml)", "250 毫升 (ml)", "500 毫升 (ml)"], ans: "100 毫升 (ml)" },
-            { q: "17. 負責人這次可是煞費苦心，請問這趟超狂的專屬行程表，主要是結合了哪些工具規劃出來的？", options: ["Gemini + GPT", "Notion + Google Maps", "Excel + GPT", "Excel +Gemini"], ans: "Excel +Gemini" },
-            { q: "18. 畫重點！6月23日我們安排的行程，這項活動位在哪個國家公園內？", options: ["庫克山 (Mt. Cook)", "亞斯比靈國家公園", "峽灣國家公園", "東加里羅國家公園"], ans: "庫克山 (Mt. Cook)" },
-            { q: "19. 這趟有安排去蒂卡波湖看滿天星空，如果要拍出絕美銀河，除了天氣晴朗，還要盡量避開什麼干擾？", options: ["滿月的月光", "北極光", "太陽黑子", "流星雨"], ans: "滿月的月光" },
-            { q: "20. 說到底，我們這趟紐西蘭之旅，最核心的「旅行目的」是為了什麼？", options: ["慶祝某人脫單", "一起出國換個地方玩", "瘋狂極限運動", "完成大家的夢想"], ans: "完成大家的夢想" },
-            { q: "21. 在紐西蘭右駕，遇到沒有紅綠燈的圓環 (Roundabout) 時，最高讓車原則是？", options: ["誰開得快誰先過", "讓左邊的車先行", "讓右邊的車先行", "閉著眼睛按喇叭過"], ans: "讓右邊的車先行" },
-            { q: "22. 這次大夥在蒂卡波 (Tekapo)、瓦納卡 (Wanaka) 等地，主要入住的房型是？", options: ["青年旅館大背包房", "露營車過夜", "多臥室的度假屋/Holiday Home", "星級飯店雙人房"], ans: "多臥室的度假屋/Holiday Home" },
-            { q: "23. 如果在飛機上遇到艙壓驟降、氧氣面罩掉落時，正確的 SOP 是？", options: ["先幫旁邊的兄弟戴，再戴自己的", "先戴好自己的，再協助旁人", "大聲尖叫並起立", "先發 IG 限動"], ans: "先戴好自己的，再協助旁人" },
-            { q: "24. 考驗觀察力！當你打開負責人給的行程表網址載入時，畫面上跳動的「倒數第二個 Emoji」是什麼？", options: ["🚗 (車子)", "✈️ (飛機)", "🏔️ (雪山)", "🪂 (跳傘)"], ans: "🪂 (跳傘)" },
-            { q: "25. 在紐西蘭到處都會看到「Kia Ora」，這句毛利語的招呼語代表什麼意思？", options: ["你好 / 祝你健康", "廁所在哪裡", "多少錢", "救命"], ans: "你好 / 祝你健康" },
-            { q: "26. 出發前大夥曾熱烈討論過許多絕美景點，請問下列哪一個我們討論過的地方，是真正被聯合國列為「世界自然遺產」的紐西蘭招牌？", options: ["皇后鎮 (Queenstown)", "米佛峽灣 (Milford Sound)", "蒂卡波湖 (Lake Tekapo)", "瓦納卡湖 (Lake Wanaka)"], ans: "米佛峽灣 (Milford Sound)" },
-            { q: "27. 抵達奧克蘭後，我們需要轉搭國內線，請問多數人是搭乘哪間航空？", options: ["捷星航空", "紐西蘭航空", "澳洲航空", "國泰航空"], ans: "紐西蘭航空" },
-            { q: "28. 話說回來，一波三折的我們，這趟旅行「最一開始」原本計畫的日期是哪時候？", options: ["2025年10月", "2025年12月", "2026年3月", "2026年4月"], ans: "2026年4月" }
+            // --- 修改：第 11 題，複選題，專屬照片 ID ---
+            { 
+                id: "secret_couple",
+                q: "11. 考驗你們對旅行負責人的了解，請問這次旅行負責人2026有甚麼樣的人生變化即將發生或已經發生？", 
+                options: ["暴玩皮克敏每天都要種花打菇", "脫離單身有新女友", "8/30~9/5 要去馬爾地夫", "入選全民運自由潛水台北市代表隊"], 
+                ans: ["暴玩皮克敏每天都要種花打菇", "脫離單身有新女友", "入選全民運自由潛水台北市代表隊"],
+                type: "multi" // 標記為複選
+            },
+
+            { q: "12. 到了紐西蘭餐廳吃飽準備結帳，最道地的英文說法是？", options: ["Give me money!", "Can I get the bill, please?", "Check out!", "Pay time!"], ans: "Can I get the bill, please?" },
+            { q: "13. 我們 9 人座車的自駕路線，起點與終點分別是哪兩個城市？", options: ["奧克蘭 ➔ 基督城", "基督城 ➔ 皇后鎮", "皇后鎮 ➔ 基督城", "基督城 ➔ 但尼丁"], ans: "基督城 ➔ 皇后鎮" },
+            { q: "14. 我們會去蒂阿瑙看藍光螢火蟲。請問這些螢火蟲在黑暗中發光的「真實目的」是什麼？", options: ["為了吸引異性交配", "為了覓食吸引獵物上鉤", "為了警告掠食者", "純粹吃錯東西肚子發光"], ans: "為了覓食吸引獵物上鉤" },
+            { q: "15. 去紐西蘭住民宿或飯店，帶電器過去時必須準備哪一種形狀的轉接頭？", options: ["圓形雙孔 (Type C)", "三腳方形 (Type G)", "八字型三孔 (Type I)", "平行扁頭 (Type A)"], ans: "八字型三孔 (Type I)" },
+            { q: "16. 我們這次旅程出發與回程的確切日期是哪一天？", options: ["6月15日至6月25日", "6月19日至6月29日", "6月20日至6月30日", "6月22日至7月2日"], ans: "6月19日至6月29日" },
+            { q: "17. 手提行李過安檢時，隨身液體的單一容器容量絕對不能超過多少？", options: ["50 毫升 (ml)", "100 毫升 (ml)", "250 毫升 (ml)", "500 毫升 (ml)"], ans: "100 毫升 (ml)" },
+            { q: "18. 負責人這次可是煞費苦心，請問這趟超狂的專屬行程表，主要是結合了哪些工具規劃出來的？", options: ["Gemini + GPT", "Notion + Google Maps", "Excel + GPT", "Excel +Gemini"], ans: "Excel +Gemini" },
+            { q: "19. 畫重點！6月23日我們安排的行程，這項活動位在哪個國家公園內？", options: ["庫克山 (Mt. Cook)", "亞斯比靈國家公園", "峽灣國家公園", "東加里羅國家公園"], ans: "庫克山 (Mt. Cook)" },
+            { q: "20. 這趟有安排去蒂卡波湖看滿天星空，如果要拍出絕美銀河，除了天氣晴朗，還要盡量避開什麼干擾？", options: ["滿月的月光", "北極光", "太陽黑子", "流星雨"], ans: "滿月的月光" },
+            { q: "21. 說到底，我們這趟紐西蘭之旅，最核心的「旅行目的」是為了什麼？", options: ["慶祝某人脫單", "一起出國換個地方玩", "瘋狂極限運動", "完成大家的夢想"], ans: "完成大家的夢想" },
+            { q: "22. 在紐西蘭右駕，遇到沒有紅綠燈的圓環 (Roundabout) 時，最高讓車原則是？", options: ["誰開得快誰先過", "讓左邊的車先行", "讓右邊的車先行", "閉著眼睛按喇叭過"], ans: "讓右邊的車先行" },
+            { q: "23. 這次大夥在蒂卡波 (Tekapo)、瓦納卡 (Wanaka) 等地，主要入住的房型是？", options: ["青年旅館大背包房", "露營車過夜", "多臥室的度假屋/Holiday Home", "星級飯店雙人房"], ans: "多臥室的度假屋/Holiday Home" },
+            { q: "24. 如果在飛機上遇到艙壓驟降、氧氣面罩掉落時，正確的 SOP 是？", options: ["先幫旁邊的兄弟戴，再戴自己的", "先戴好自己的，再協助旁人", "大聲尖叫並起立", "先發 IG 限動"], ans: "先戴好自己的，再協助旁人" },
+            { q: "25. 考驗觀察力！當你打開負責人給的行程表網址載入時，畫面上跳動的「倒數第二個 Emoji」是什麼？", options: ["🚗 (車子)", "✈️ (飛機)", "🏔️ (雪山)", "🪂 (跳傘)"], ans: "🪂 (跳傘)" },
+            { q: "26. 在紐西蘭到處都會看到「Kia Ora」，這句毛利語的招呼語代表什麼意思？", options: ["你好 / 祝你健康", "廁所在哪裡", "多少錢", "救命"], ans: "你好 / 祝你健康" },
+            { q: "27. 出發前大夥曾熱烈討論過許多絕美景點，請問下列哪一個我們討論過的地方，是真正被聯合國列為「世界自然遺產」的紐西蘭招牌？", options: ["皇后鎮 (Queenstown)", "米佛峽灣 (Milford Sound)", "蒂卡波湖 (Lake Tekapo)", "瓦納卡湖 (Lake Wanaka)"], ans: "米佛峽灣 (Milford Sound)" },
+            { q: "28. 抵達奧克蘭後，我們需要轉搭國內線，請問多數人是搭乘哪間航空？", options: ["捷星航空", "紐西蘭航空", "澳洲航空", "國泰航空"], ans: "紐西蘭航空" },
+            { q: "29. 話說回來，一波三折的我們，這趟旅行「最一開始」原本計畫的日期是哪時候？", options: ["2025年10月", "2025年12月", "2026年3月", "2026年4月"], ans: "2026年4月" }
         ];
 
         const TIME_LIMIT = 30;
@@ -439,7 +468,8 @@
             
             document.getElementById("score-display").innerHTML = `${finalScore}<span style="font-size: 24px;"> 分</span>`;
 
-            let secretReviewHTML = "";
+            let secretBabyHTML = "";
+            let secretCoupleHTML = "";
             let normalReviewHTML = "";
 
             questions.forEach((q, index) => {
@@ -464,12 +494,20 @@
                 let boxClass = isCorrect ? "correct" : "wrong";
                 let qTextClean = q.q.replace(/^\d+\.\s*/, '');
                 
-                // 判斷是否為秘密驚喜題，若是則獨立存成 secretReviewHTML
-                if (q.id === "secret_q") {
-                    let secretBtn = `<button onclick="showSecretPhotos()" style="margin-top: 10px; background-color: #ff9500; font-size: 15px; box-shadow: 0 4px 8px rgba(255,149,0,0.3);">📸 點擊查看真相照片</button>`;
-                    secretReviewHTML = `
+                if (q.id === "secret_baby") {
+                    let secretBtn = `<button onclick="showPhotoBaby()" style="margin-top: 10px; background-color: #ff9500; font-size: 15px; box-shadow: 0 4px 8px rgba(255,149,0,0.3);">📸 點擊查看寶寶驚喜照</button>`;
+                    secretBabyHTML = `
                     <div class="review-item ${boxClass}" style="border: 2px solid #ff9500; background: #fffdfa;">
-                        <div class="review-q" style="color: #D9534F; font-size: 16px;">🎯 壓軸驚喜解答 (考卷第 ${index + 1} 題): <br><span style="color: #333; font-size: 14px; font-weight: normal;">${qTextClean}</span></div>
+                        <div class="review-q" style="color: #D9534F; font-size: 16px;">🎯 寶寶驚喜解答 (考卷第 ${index + 1} 題): <br><span style="color: #333; font-size: 14px; font-weight: normal;">${qTextClean}</span></div>
+                        <div style="margin-bottom: 3px;">你的答案：<span class="${statusClass}">${statusIcon} ${uAnsText}</span></div>
+                        ${!isCorrect ? `<div>正確答案：<span class="correct-text">${correctText}</span></div>` : ""}
+                        ${secretBtn}
+                    </div>`;
+                } else if (q.id === "secret_couple") {
+                    let secretBtn = `<button onclick="showPhotoCouple()" style="margin-top: 10px; background-color: #e83e8c; font-size: 15px; box-shadow: 0 4px 8px rgba(232,62,140,0.3);">📸 點擊查看專屬驚喜照</button>`;
+                    secretCoupleHTML = `
+                    <div class="review-item ${boxClass}" style="border: 2px solid #e83e8c; background: #fff5f8;">
+                        <div class="review-q" style="color: #e83e8c; font-size: 16px;">💖 專屬驚喜解答 (考卷第 ${index + 1} 題): <br><span style="color: #333; font-size: 14px; font-weight: normal;">${qTextClean}</span></div>
                         <div style="margin-bottom: 3px;">你的答案：<span class="${statusClass}">${statusIcon} ${uAnsText}</span></div>
                         ${!isCorrect ? `<div>正確答案：<span class="correct-text">${correctText}</span></div>` : ""}
                         ${secretBtn}
@@ -484,17 +522,22 @@
                 }
             });
             
-            // 將 secretReviewHTML 放在最前面，強制置頂
-            document.getElementById("review-container").innerHTML = secretReviewHTML + normalReviewHTML;
+            document.getElementById("review-container").innerHTML = secretBabyHTML + secretCoupleHTML + normalReviewHTML;
             updateNetworkStatus();
         }
 
-        // 開關照片畫廊的函數
-        function showSecretPhotos() {
-            document.getElementById("photo-modal").classList.remove("hidden");
+        function showPhotoBaby() {
+            document.getElementById("photo-modal-baby").classList.remove("hidden");
         }
-        function closeSecretPhotos() {
-            document.getElementById("photo-modal").classList.add("hidden");
+        function closePhotoBaby() {
+            document.getElementById("photo-modal-baby").classList.add("hidden");
+        }
+
+        function showPhotoCouple() {
+            document.getElementById("photo-modal-couple").classList.remove("hidden");
+        }
+        function closePhotoCouple() {
+            document.getElementById("photo-modal-couple").classList.add("hidden");
         }
 
         function updateNetworkStatus() {
