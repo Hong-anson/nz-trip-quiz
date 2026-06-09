@@ -498,7 +498,7 @@
                 let qTextClean = q.q.replace(/^\d+\.\s*/, '');
                 
                 if (q.id === "secret_baby") {
-                    let secretBtn = `<button onclick="showPhotoBaby()" style="margin-top: 10px; background-color: #ff9500; font-size: 15px; box-shadow: 0 4px 8px rgba(255,149,0,0.3);">📸 點擊查看寶寶驚喜照</button>`;
+                    let secretBtn = `<button onclick="showPhotoBaby()" style="margin-top: 10px; background-color: #ff9500; font-size: 15px; box-shadow: 0 4px 8px rgba(255,149,0,0.3);">📸 寶寶驚喜照</button>`;
                     secretBabyHTML = `
                     <div class="review-item ${boxClass}" style="border: 2px solid #ff9500; background: #fffdfa;">
                         <div class="review-q" style="color: #D9534F; font-size: 16px;">🎯 寶寶驚喜解答 (考卷第 ${index + 1} 題): <br><span style="color: #333; font-size: 14px; font-weight: normal;">${qTextClean}</span></div>
@@ -507,10 +507,10 @@
                         ${secretBtn}
                     </div>`;
                 } else if (q.id === "secret_couple") {
-                    let secretBtn = `<button onclick="showPhotoCouple()" style="margin-top: 10px; background-color: #e83e8c; font-size: 15px; box-shadow: 0 4px 8px rgba(232,62,140,0.3);">📸 點擊查看專屬驚喜照</button>`;
+                    let secretBtn = `<button onclick="showPhotoCouple()" style="margin-top: 10px; background-color: #e83e8c; font-size: 15px; box-shadow: 0 4px 8px rgba(232,62,140,0.3);">📸 點擊查看專屬驚喜</button>`;
                     secretCoupleHTML = `
                     <div class="review-item ${boxClass}" style="border: 2px solid #e83e8c; background: #fff5f8;">
-                        <div class="review-q" style="color: #e83e8c; font-size: 16px;">💖 專屬驚喜解答 (考卷第 ${index + 1} 題): <br><span style="color: #333; font-size: 14px; font-weight: normal;">${qTextClean}</span></div>
+                        <div class="review-q" style="color: #e83e8c; font-size: 16px;">💖 古肥專屬驚喜解答 (考卷第 ${index + 1} 題): <br><span style="color: #333; font-size: 14px; font-weight: normal;">${qTextClean}</span></div>
                         <div style="margin-bottom: 3px;">你的答案：<span class="${statusClass}">${statusIcon} ${uAnsText}</span></div>
                         ${!isCorrect ? `<div>正確答案：<span class="correct-text">${correctText}</span></div>` : ""}
                         ${secretBtn}
